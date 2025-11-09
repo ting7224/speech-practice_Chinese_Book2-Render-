@@ -1,0 +1,25 @@
+後端伺服器開啟方式
+1.ctrl+r
+2.輸入cmd
+3.輸入cd C:\Users\cycu\Desktop\my-voice-app
+4.輸入set GOOGLE_APPLICATION_CREDENTIALS=C:\Users\cycu\Desktop\my-voice-app\voice-practice-a2-e1ba85434163.json
+5.輸入echo %GOOGLE_APPLICATION_CREDENTIALS%
+這個步驟是用來測試是否正確設定，可以不用。如果終端機顯示了完整的金鑰檔案路徑，代表設定成功。
+6.輸入python app.py
+會顯示
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1758273846.687659   15176 alts_credentials.cc:93] ALTS creds ignored. Not running on GCP and untrusted ALTS is not enabled.
+ * Serving Flask app 'app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1758273847.132347    9952 alts_credentials.cc:93] ALTS creds ignored. Not running on GCP and untrusted ALTS is not enabled.
+ * Debugger is active!
+ * Debugger PIN: 128-163-762
+
+7.完成。如果以上步驟都正確，伺服器應該就能順利啟動，您會看到類似 * Running on http://127.0.0.1:5000/ 的訊息，而不是先前的錯誤。
+
+8.離開:ctrl+c

@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>中文口語發音練習（Book2_A2）</title>
+  <style>
+    body { font-family: "Microsoft JhengHei", Arial, sans-serif; background:#fafafa; margin:0; padding:20px; }
+    .container { max-width: 980px; margin:0 auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 0 10px rgba(0,0,0,.08); }
+    h1 { text-align:center; margin-top:0; color:#333; }
+    h2 { margin-top:28px; border-bottom: 2px solid #eee; padding-bottom: 5px; color:#444; }
+    button { 
+      padding:10px 15px; margin:5px; font-size:16px; border:none; 
+      border-radius:6px; cursor:pointer; transition: background-color 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    button:disabled { background-color: #ccc !important; cursor: not-allowed; opacity: 0.6; }
+
+    #recordButton, #quizRecordButton { background-color:#4CAF50; color:white; } /* Green */
+    #stopButton, #quizStopButton { background-color:#f44336; color:white; } /* Red */
+    .btn-secondary { background-color:#2196F3; color:white; } /* Blue */
+    .btn-quiz-next { background-color: #ff9800; color: white; } /* Orange */
+    
+    .sentence { font-size:22px; font-weight: bold; text-align:center; margin:20px 0; padding:15px; background:#f1f1f1; border-radius:10px; box-shadow: inset 0 1px 3px rgba(0,0,0,.1); }
+    
+    #result, #diff, #quizDiff, #quizSummaryDiv, .box, .quiz-summary-item { padding:15px; margin-top:10px; background:#f9f9f9; border:1px solid #ddd; min-height:30px; border-radius:8px; line-height: 1.6; }
+    .diff-match { color: green; font-weight: bold; }
+    .diff-mismatch { color: red; font-weight: bold; background-color: #ffe0e0; padding: 2px 0; border-radius: 4px; }
+    .diff-extra { color: gray; text-decoration: underline; }
+
+    .status-box { padding:12px; border-radius:8px; font-weight:bold; margin-top:10px; text-align:center; }
+    .status-ready { background-color: #e3f2fd; color: #1565c0; } /* Light Blue */
+    .status-recording { background-color: #ffcdd2; color: #c62828; } /* Light Red */
+    .status-processing { background-color: #fff9c4; color: #f9a825; } /* Light Yellow */
+    .status-error { background-color: #ffcdd2; color: #d32f2f; } /* Error Red */
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tabs button { background-color: #e0e0e0; color: #333; margin-bottom: 15px; }
+    .tabs button.active { background-color: #2196F3; color: white; }
+
+    .controls { margin: 15px 0; text-align: center; }
+    .flex-group { display: flex; align-items: center; justify-content: center; margin: 10px 0; flex-wrap: wrap; }
+    .flex-group label, .flex-group select { margin: 5px 10px; }
+
+    .quiz-summary-item { margin-bottom: 10px; border: 1px solid #c8e6c9; background-color: #e8f5e9; }
+    .quiz-summary-item .grade { font-size: 1.2em; margin-left: 10px; }
+    .grade-A { color: green; }
+    .grade-B { color: orange; }
+    .grade-C { color: red; }
+
+    /* 新增練習區塊的控制項樣式 */
+    .practice-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    .practice-controls label, .practice-controls select {
+      margin-right: 15px;
+      font-size: 18px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>中文口語發音練習（Book2_A2）</h1>
+
+    <div class="tabs">
+      <button onclick="openTab('practiceSection', this)" class="active">一般練習</button>
+      <button onclick="openTab('quizSection', this)">口語測驗</button>
+      <button onclick="openTab('dataSection', this)">資料匯出</button>
+    </div>
+
+    <!-- 一般練習區塊 (已新增下一句/換一句按鈕) -->
+    <div id="practiceSection" class="tab-content active">
+      <h2>一般練習</h2>
+      <div class="practice-controls">
+        <label for="lessonSelect">選擇課次:</label>
+        <select id="lessonSelect"></select>
+        <button id="nextPracticeSentenceButton" class="btn-secondary">下一句</button>
+        <button id="randomPracticeSentenceButton" class="btn-secondary">換一句</button>
+      </div>
+      
+      <!-- 初始內容會被 JS 覆蓋，避免預設顯示錯誤的範例句 -->
+      <div class="sentence" id="practiceSentence">正在載入句子...</div> 
+      <p>或輸入自訂句子:</p>
+      <input type="text" id="sentenceInput" placeholder="在此輸入您想練習的句子" style="width: 80%; padding: 8px;" />
+
+      <div class="controls">
+        <button id="recordButton">開始錄音</button>
+        <button id="stopButton" disabled>停止錄音</button>
+      </div>
+
+      <div id="status" class="status-box status-ready">準備就緒。點擊「開始錄音」進行練習。</div>
+      
+      <h3>辨識結果 (你說的)</h3>
+      <div id="result"></div>
+
+      <h3>發音比較</h3>
+      <div id="diff"></div>
+
+      <h3>建議回饋</h3>
+      <div id="feedback" class="box"></div>
+      
+      <!-- 練習紀錄儲存 (可選) -->
+      <div class="controls">
+        <button id="savePracticeButton" class="btn-secondary">儲存本次練習紀錄</button>
+      </div>
+      <p id="saveMessage" style="text-align: center; color: green;"></p>
+    </div>
+
+    <!-- 口語測驗區塊 -->
+    <div id="quizSection" class="tab-content">
+      <h2>口語測驗 (隨機 5 題)</h2>
+      
+      <div class="controls">
+        <button id="startQuizButton" class="btn-secondary">開始測驗</button>
+      </div>
+      
+      <div id="quizStatus" class="status-box status-ready">點擊「開始測驗」開始進行測驗。</div>
+
+      <div class="sentence" id="quizSentence"></div> 
+      
+      <div class="controls">
+        <button id="quizRecordButton" disabled>開始錄音</button>
+        <button id="quizStopButton" disabled>停止錄音</button>
+        <button id="quizNextButton" class="btn-quiz-next" disabled>下一題</button>
+      </div>
+      
+      <h3>測驗結果 (你的發音)</h3>
+      <div id="quizResult"></div>
+
+      <h3>發音比較</h3>
+      <div id="quizDiff"></div>
+
+      <h3>建議回饋</h3>
+      <div id="quizFeedbackDiv" class="box"></div>
+
+      <h3 style="margin-top: 25px;">測驗總結</h3>
+      <div id="quizSummaryDiv"></div>
+      <div class="controls">
+        <button id="quizSummaryButton" class="btn-secondary" disabled>匯出測驗總結</button>
+      </div>
+    </div>
+
+    <!-- 資料匯出區塊 -->
+    <div id="dataSection" class="tab-content">
+      <h2>資料匯出</h2>
+      <p>所有練習與測驗紀錄都儲存在瀏覽器中。您可以將其匯出為純文字或 CSV 格式。</p>
+      <div class="controls">
+        <button id="downloadTextButton" class="btn-secondary">匯出純文字 (.txt)</button>
+        <button id="downloadCSVButton" class="btn-secondary">匯出 CSV (.csv)</button>
+      </div>
+      <textarea id="dataPreview" rows="10" readonly style="width: 100%; margin-top: 10px; padding: 10px; border: 1px solid #ddd;"></textarea>
+    </div>
+
+  </div>
+
+  <script>
+    // ------------------------------------------------------------------
+    // 1. 課次資料 (從 Lesson1to15.txt 貼上，確保格式正確)
+    // ------------------------------------------------------------------
+    const lessons = {
+      "1": [
+        "我們一起走到公園裡散步。",
+        "那位路人熱心地告訴我們便利商店在哪裡。",
+        "你需要我幫忙拿行李嗎？",
+        "請問你知道學校在哪裡嗎?我迷路了。",
+        "下一個路口左轉，餐廳就到了。",
+        "這個路口的車子很多，你得小心。",
+        "郵局在中山路四段三十號。",
+        "咖啡店不太遠，你過了紅綠燈再右轉就到了。",
+        "公園在第幾個路口？",
+        "一定要等紅綠燈變綠再過馬路才安全。",
+        "請你告訴我最近的飲料店在哪裡。",
+        "我想提錢，可是這附近沒有提款機。",
+        "下課後，我們常常去超商買零食。",
+        "他應該已經下課了，怎麼還沒回家？",
+        "她把信帶到郵局寄了。",
+        "他想提十萬塊錢付學費，所以得去銀行。",
+        "那邊的風景非常漂亮。",
+        "師大的學生畢業以後都想當老師嗎?",
+        "和平東路上有一家很有名的小吃店。",
+        "從這裡往前走，差不多三分鐘就到捷運站了。",
+        "在咖啡店門口右轉，就會看到一座公園。",
+        "火車站聽起來不太遠，我們走路去吧。",
+        "我在路上看見小美跟一個男生在聊天。",
+        "我正在下載最新的遊戲。",
+        "爬山前別忘了穿舒服的運動鞋。",
+        "我們在這裡等火車來吧。",
+        "這家店的菜色很多樣，有中式的、西式的，還有日式的。",
+        "請問捷運站往哪邊走？",
+        "捷運站的附近有很多便利商店。"
+      ],
+      "2": [
+        "他昨天開會的時候說了好多新的想法。",
+        "這家超市有很多來自國外的商品。",
+        "我昨天把護照放在家裡忘了帶。",
+        "他常常開玩笑，大家都很喜歡他。",
+        "我打算去郵局寄包裹。",
+        "這家店的商品種類很多。",
+        "他很會說笑話，讓大家都很開心。",
+        "我的錢包裡只有一千塊錢。",
+        "他開車開得很快，一下子就到公司了。",
+        "他不知道該怎麼辦，因為他不知道怎麼辦。",
+        "他一邊走路一邊聽音樂。",
+        "這是一個好笑的笑話，我聽了笑了一整天。",
+        "請幫我拿一下這個東西，謝謝。",
+        "他上課的時候很認真，常常問老師問題。",
+        "我把重要的文件放在辦公室裡了。",
+        "我不會游泳，所以我只在淺水區玩。",
+        "我把手機掉到水裡了，怎麼辦？",
+        "我把重要的資料放在電腦裡，怕會弄丟。",
+        "這是一個很危險的地方，你得小心。",
+        "我昨天把功課做完了。",
+        "請把這封信寄給王先生。",
+        "我把我的地址寫在信封上了。",
+        "我不知道怎麼處理這件事情。",
+        "這是一個很複雜的問題，需要花時間解決。",
+        "我把我的想法寫在紙上了。",
+        "我們在公園裡玩了很久。",
+        "我把這件事情告訴了我的家人。",
+        "我不知道該怎麼感謝你。",
+        "我們一起去買菜吧。"
+      ],
+      "3": [
+        "這件衣服的顏色很漂亮，我很喜歡。",
+        "你覺得這件外套的顏色怎麼樣？",
+        "這件裙子的款式很特別。",
+        "這件襯衫的領子太高了，我不喜歡。",
+        "這件褲子的尺寸太大了。",
+        "這雙鞋子的價錢很貴。",
+        "這條褲子的材質很舒服。",
+        "這件衣服的設計很有創意。",
+        "我喜歡這種休閒的款式。",
+        "你覺得我穿這件衣服好看嗎？",
+        "這雙鞋子的尺寸剛好。",
+        "這條裙子的長度太短了。",
+        "我喜歡這種簡單的設計。",
+        "這件衣服的材質是純棉的。",
+        "這件衣服的顏色很適合你。",
+        "這件襯衫的袖子太長了。",
+        "這雙鞋子的價錢很合理。",
+        "這條褲子的款式很流行。",
+        "這件衣服的領子很特別。",
+        "這件外套的尺寸很合身。",
+        "我喜歡這件衣服的顏色。",
+        "你覺得這件衣服的價錢怎麼樣？",
+        "這件衣服的款式很簡單。",
+        "這件衣服的材質很特別。",
+        "這件衣服的設計很優雅。",
+        "我喜歡這種正式的款式。",
+        "你覺得我穿這件衣服舒服嗎？",
+        "這雙鞋子的尺寸太小了。",
+        "這條裙子的長度剛好。"
+      ],
+      "4": [
+        "老闆，這件衣服可以打折嗎？",
+        "這件衣服的價錢有點貴，可以算便宜一點嗎？",
+        "這件衣服可以試穿嗎？",
+        "請問這件衣服有其他顏色嗎？",
+        "這件衣服的尺寸不合適。",
+        "這雙鞋子的款式我不喜歡。",
+        "這條褲子的價錢太貴了。",
+        "這件衣服的材質我不喜歡。",
+        "請問這件衣服可以退換嗎？",
+        "這件衣服的設計太花俏了。",
+        "這件衣服的顏色太暗了。",
+        "這雙鞋子的尺寸不合腳。",
+        "這條褲子的款式太老氣了。",
+        "這件衣服的材質太薄了。",
+        "這件衣服的領子太低了。",
+        "請問這件衣服有折扣嗎？",
+        "這件衣服的價錢我可以接受。",
+        "這件衣服穿起來很舒服。",
+        "這件衣服的顏色很特別。",
+        "這件衣服的尺寸很合適。",
+        "這雙鞋子的款式很流行。",
+        "這條褲子的價錢很合理。",
+        "這件衣服的材質很耐穿。",
+        "這件衣服的領子很漂亮。",
+        "請問這件衣服可以修改嗎？",
+        "這件衣服的設計很簡單。",
+        "這件衣服的顏色很亮眼。",
+        "這雙鞋子的尺寸很合腳。",
+        "這條褲子的款式很年輕。"
+      ],
+      "5": [
+        "我今天工作到很晚，所以有點累。",
+        "我今天有很多事情要做，所以很忙。",
+        "我今天睡得很晚，所以有點睏。",
+        "我今天吃了很多東西，所以有點飽。",
+        "我今天沒吃什麼東西，所以有點餓。",
+        "我今天喝了很多水，所以有點脹。",
+        "我今天沒喝什麼水，所以有點渴。",
+        "我今天心情很好，所以很開心。",
+        "我今天心情不好，所以有點難過。",
+        "我今天遇到了一些麻煩，所以有點煩惱。",
+        "我今天很早就起床了，所以精神很好。",
+        "我今天運動了很久，所以有點累。",
+        "我今天有很多作業要做，所以很忙。",
+        "我今天看了很多書，所以有點睏。",
+        "我今天吃了一頓大餐，所以很飽。",
+        "我今天只吃了一點點東西，所以很餓。",
+        "我今天喝了一杯咖啡，所以很精神。",
+        "我今天沒喝咖啡，所以有點想睡。",
+        "我今天聽到了一個好消息，所以很開心。",
+        "我今天被老師罵了，所以有點難過。",
+        "我今天遇到了一個難題，所以有點煩惱。",
+        "我今天睡了很久，所以精神不太好。",
+        "我今天沒運動，所以身體有點僵硬。",
+        "我今天沒什麼事情要做，所以很閒。",
+        "我今天沒看書，所以覺得有點無聊。",
+        "我今天沒吃早餐，所以很餓。",
+        "我今天沒喝水，所以很渴。",
+        "我今天心情平靜，所以很放鬆。",
+        "我今天有很多事情要處理，所以有點壓力。"
+      ],
+      "6": [
+        "這家餐廳的菜很好吃，我們下次再來吧。",
+        "這家咖啡店的環境很好，很適合聊天。",
+        "這家書店有很多新書，我很喜歡。",
+        "這家電影院的螢幕很大，看起來很舒服。",
+        "這家旅館的服務很好，我很滿意。",
+        "這家商店的商品很便宜，我很喜歡。",
+        "這家公司的待遇很好，我很滿意。",
+        "這個公園的風景很美，很適合散步。",
+        "這個博物館的展覽很有趣，我很喜歡。",
+        "這個圖書館的書很多，我很喜歡。",
+        "這家餐廳的服務很差，我很生氣。",
+        "這家咖啡店的咖啡很難喝，我很失望。",
+        "這家書店的書很舊，我不喜歡。",
+        "這家電影院的座位很不舒服，我很不滿意。",
+        "這家旅館的房間很髒，我很不滿意。",
+        "這家商店的商品很貴，我不喜歡。",
+        "這家公司的待遇很差，我很不滿意。",
+        "這個公園的空氣很糟，不適合散步。",
+        "這個博物館的展覽很無聊，我不喜歡。",
+        "這個圖書館的書很少，我不喜歡。",
+        "這家餐廳的菜很普通，沒什麼特別。",
+        "這家咖啡店的環境很吵，不適合工作。",
+        "這家書店的書很貴，我不喜歡。",
+        "這家電影院的音響效果很好，我很滿意。",
+        "這家旅館的房間很舒適，我很滿意。",
+        "這家商店的商品很特別，我很喜歡。",
+        "這家公司的待遇一般，還可以接受。",
+        "這個公園的人很多，很吵鬧。",
+        "這個博物館的展覽很精彩，我很喜歡。"
+      ],
+      "7": [
+        "你週末有什麼計畫嗎？",
+        "我打算週末去爬山。",
+        "我週末想在家看電影。",
+        "我週末要跟朋友出去玩。",
+        "你喜歡什麼樣的活動？",
+        "我喜歡戶外活動，像是爬山、游泳。",
+        "我喜歡室內活動，像是看書、看電影。",
+        "你通常週末會做什麼？",
+        "我通常週末會睡到自然醒。",
+        "我週末常常去健身房運動。",
+        "我週末會去上一些興趣班。",
+        "你覺得週末去哪裡玩比較好？",
+        "我覺得週末去海邊玩比較好。",
+        "我覺得週末去山上玩比較好。",
+        "我覺得週末去城市裡逛街比較好。",
+        "你喜歡自己一個人活動還是跟朋友一起？",
+        "我喜歡跟朋友一起活動，比較熱鬧。",
+        "我喜歡自己一個人活動，比較自在。",
+        "你週末會不會覺得無聊？",
+        "我週末不會覺得無聊，因為我有很多事情要做。",
+        "我週末有時候會覺得無聊，不知道該做什麼。",
+        "你週末有沒有什麼特別的習慣？",
+        "我週末有個習慣是去咖啡店看書。",
+        "我週末有個習慣是早上起來跑步。",
+        "你週末會不會加班？",
+        "我週末通常不會加班。",
+        "我週末有時候會因為工作需要而加班。",
+        "你週末會不會做家事？",
+        "我週末會做一些基本的家事，像是打掃。",
+        "我週末通常會把家事留到星期一做。"
+      ],
+      "8": [
+        "你覺得這個設計怎麼樣？",
+        "我覺得這個設計很棒，很有創意。",
+        "我覺得這個設計有點簡單，可以再多一點細節。",
+        "你對這個提案有什麼看法？",
+        "我對這個提案很有信心，我覺得會成功。",
+        "我對這個提案有些疑慮，需要再討論一下。",
+        "你覺得這個問題該怎麼解決？",
+        "我覺得這個問題需要從根本上去解決。",
+        "我覺得這個問題可以用一些臨時的方法來應對。",
+        "你覺得這個決定是對的嗎？",
+        "我覺得這個決定是正確的，符合我們的目標。",
+        "我覺得這個決定有點草率，需要再考慮清楚。",
+        "你對這件事情有什麼感想？",
+        "我對這件事情感到很驚訝，沒想到會發生。",
+        "我對這件事情感到很難過，希望可以盡快過去。",
+        "你覺得我們該怎麼辦？",
+        "我覺得我們應該保持冷靜，不要慌張。",
+        "我覺得我們應該主動出擊，爭取更好的結果。",
+        "你覺得這個人怎麼樣？",
+        "我覺得這個人很可靠，可以信任他。",
+        "我覺得這個人有點不可靠，需要多加觀察。",
+        "你覺得這個地方怎麼樣？",
+        "我覺得這個地方很舒服，很適合放鬆。",
+        "我覺得這個地方有點吵雜，不適合久留。",
+        "你覺得這個產品怎麼樣？",
+        "我覺得這個產品很好用，值得推薦。",
+        "我覺得這個產品有點貴，性價比不高。"
+      ],
+      "9": [
+        "這家店的咖啡味道很濃，我很喜歡。",
+        "這家店的甜點很好吃，我們下次再來。",
+        "這家店的服務很親切，讓人感覺很舒服。",
+        "這家店的氣氛很輕鬆，很適合聊天。",
+        "這家店的裝潢很有特色，我很喜歡。",
+        "這家店的音樂很輕柔，讓人很放鬆。",
+        "這家店的燈光很柔和，很適合約會。",
+        "這家店的桌椅很舒適，坐起來很舒服。",
+        "這家店的價錢很合理，物超所值。",
+        "這家店的菜單很豐富，有很多選擇。",
+        "這家店的咖啡味道很淡，我不喜歡。",
+        "這家店的甜點太甜了，我不喜歡。",
+        "這家店的服務很冷漠，讓人感覺不舒服。",
+        "這家店的氣氛很吵鬧，不適合工作。",
+        "這家店的裝潢很普通，沒什麼特別。",
+        "這家店的音樂很吵雜，讓人很煩躁。",
+        "這家店的燈光太亮了，讓人不舒服。",
+        "這家店的桌椅很不舒適，坐起來很累。",
+        "這家店的價錢有點貴，不太值得。",
+        "這家店的菜單很簡單，沒什麼選擇。",
+        "這家店的咖啡味道很特別，我很喜歡。",
+        "這家店的甜點很健康，我很喜歡。",
+        "這家店的服務很周到，讓人很滿意。",
+        "這家店的氣氛很安靜，很適合看書。",
+        "這家店的裝潢很簡單，但很有品味。",
+        "這家店的音樂很古典，讓人很平靜。",
+        "這家店的燈光很自然，讓人很舒服。",
+        "這家店的桌椅很現代，坐起來很舒適。",
+        "這家店的價錢很便宜，很划算。"
+      ],
+      "10": [
+        "你覺得我們應該怎麼慶祝生日？",
+        "我覺得我們應該去吃一頓大餐慶祝。",
+        "我覺得我們應該在家裡辦一個派對慶祝。",
+        "你覺得這個禮物他會喜歡嗎？",
+        "我覺得這個禮物他會很喜歡，因為他一直想要。",
+        "我覺得這個禮物他可能不太喜歡，因為他已經有了。",
+        "你打算送他什麼禮物？",
+        "我打算送他一個新的手機作為禮物。",
+        "我打算送他一張手工卡片和一束花。",
+        "你覺得我們應該邀請誰來參加派對？",
+        "我覺得我們應該邀請所有好朋友來參加。",
+        "我覺得我們只邀請幾個親密的家人和朋友就好。",
+        "你覺得派對的主題應該是什麼？",
+        "我覺得派對的主題應該是復古風。",
+        "我覺得派對的主題應該是動漫角色扮演。",
+        "你覺得派對的場地應該在哪裡？",
+        "我覺得派對的場地應該在一個有漂亮風景的地方。",
+        "我覺得派對的場地可以在家裡，比較溫馨。",
+        "你覺得派對的食物應該準備什麼？",
+        "我覺得派對的食物應該準備一些大家喜歡的零食和飲料。",
+        "我覺得派對的食物可以訂購外燴，比較省事。",
+        "你覺得派對的活動應該有哪些？",
+        "我覺得派對的活動可以有唱歌、跳舞、玩遊戲。",
+        "我覺得派對的活動可以讓大家自由聊天、放鬆。",
+        "你覺得我們應該什麼時候開始準備？",
+        "我覺得我們應該現在就開始準備，時間比較充裕。",
+        "我覺得我們等下禮拜再開始準備也不遲。"
+      ],
+      "11": [
+        "他今天很晚才到學校，因為路上塞車。",
+        "我早上習慣喝一杯咖啡提神。",
+        "這部電影的劇情很感人，我看了哭了。",
+        "你覺得這件事情是怎麼發生的？",
+        "我覺得這件事情是因為溝通不良而發生的。",
+        "我覺得這件事情是因為意外而發生的。",
+        "你對這件事情的看法是什麼？",
+        "我對這件事情的看法是，雙方都有責任。",
+        "我對這件事情的看法是，這是一個不幸的事件。",
+        "你覺得我們能從這件事情學到什麼？",
+        "我覺得我們能從這件事情學到要更加小心。",
+        "我覺得我們能從這件事情學到要更懂得溝通。",
+        "你覺得這個人做得對嗎？",
+        "我覺得這個人做得不對，他應該要負責任。",
+        "我覺得這個人做得情有可原，不能完全怪他。",
+        "你覺得這件事情會有什麼後果？",
+        "我覺得這件事情會影響到我們之間的關係。",
+        "我覺得這件事情不會有太大的影響。",
+        "你覺得這個決定是明智的嗎？",
+        "我覺得這個決定是明智的，可以避免更大的損失。",
+        "我覺得這個決定不夠明智，應該有更好的選擇。",
+        "你對這個結果滿意嗎？",
+        "我對這個結果很滿意，達到了我的期望。",
+        "我對這個結果不太滿意，希望能有更好的表現。",
+        "你覺得這個時候該說什麼？",
+        "我覺得這個時候應該說一些鼓勵的話。",
+        "我覺得這個時候應該保持沉默，靜靜地聽。",
+        "你覺得這個地方還有什麼可以改進的？",
+        "我覺得這個地方可以增加一些綠色植物，讓環境更好。",
+        "我覺得這個地方的燈光可以再亮一點，比較舒服。"
+      ],
+      "12": [
+        "這家店賣的衣服種類很多，有很多選擇。",
+        "這家店的衣服都很時尚，很受年輕人歡迎。",
+        "這家店的衣服品質很好，很耐穿。",
+        "這家店的衣服價錢很合理，很划算。",
+        "這家店的衣服設計很特別，很有個性。",
+        "這家店的衣服顏色很多樣，可以搭配不同的風格。",
+        "這家店的衣服尺寸很齊全，各種身材的人都能找到合適的。",
+        "這家店的衣服材質很舒服，穿起來很自在。",
+        "這家店的衣服款式很休閒，很適合日常穿著。",
+        "這家店的衣服風格很正式，很適合上班族。",
+        "這家店的衣服種類很少，沒什麼選擇。",
+        "這家店的衣服都很老氣，不適合年輕人。",
+        "這家店的衣服品質很差，很容易壞。",
+        "這家店的衣服價錢很貴，不太值得。",
+        "這家店的衣服設計很普通，沒什麼特色。",
+        "這家店的衣服顏色很單調，沒什麼變化。",
+        "這家店的衣服尺寸不齊全，很難找到合適的。",
+        "這家店的衣服材質很粗糙，穿起來不舒服。",
+        "這家店的衣服款式太花俏，不適合日常穿著。",
+        "這家店的衣服風格太休閒，不適合正式場合。",
+        "這家店的衣服有很多特價品，很便宜。",
+        "這家店的衣服有很多新款式，很流行。",
+        "這家店的衣服有很多手工製作的，很精緻。",
+        "這家店的衣服有很多設計師品牌，很高檔。",
+        "這家店的衣服有很多環保材質的，很健康。",
+        "這家店的衣服有很多明星同款，很受歡迎。",
+        "這家店的衣服有很多民族風格的，很特別。",
+        "這家店的衣服有很多運動風格的，很舒服。",
+        "這家店的衣服有很多可愛圖案的，很可愛。"
+      ],
+      "13": [
+        "我打算畢業後回國工作。",
+        "他的個性很獨立，不太需要別人幫忙。",
+        "這部電影很感人，我看了兩次都哭了。",
+        "這家公司的產品品質很好，所以很多人都買。",
+        "他做事很有效率，總是能很快完成工作。",
+        "這份工作常常需要專業人員，不是誰來做都可以的。",
+        "你要努力充實自己的專業能力，畢業以後才能找到好工作。",
+        "加拿大是一個在美國北方的國家，冬天非常冷。",
+        "他以後想開公司，所以打算去念企業管理系。",
+        "他的英文很好，有時間也學中文，因為以後想要念國際關係系。"
+      ],
+      "14": [
+        "我打算畢業後回國工作。",
+        "他的個性很獨立，不太需要別人幫忙。",
+        "這部電影很感人，我看了兩次都哭了。",
+        "這家公司的產品品質很好，所以很多人都買。",
+        "他做事很有效率，總是能很快完成工作。",
+        "這份工作常常需要專業人員，不是誰來做都可以的。",
+        "你要努力充實自己的專業能力，畢業以後才能找到好工作。",
+        "加拿大是一個在美國北方的國家，冬天非常冷。",
+        "他以後想開公司，所以打算去念企業管理系。",
+        "他的英文很好，有時間也學中文，因為以後想要念國際關係系。"
+      ],
+      "15": [
+        "春節對華人來說是最重要的傳統節日，全家人都會聚在一起吃飯。",
+        "我的伯伯每年過年都會從美國回來和我們一起圍爐。",
+        "媽媽準備了豐盛的年夜飯，全家人聚在一起，一邊吃一邊聊。對話",
+        "不好意思這麼晚打擾您，但有重要的事情需要討論。",
+        "他的女兒今年考上了台灣大學，全家人都很高興。",
+        "哥哥在國外工作已經五年了，今年終於能回來跟我們過年了。",
+        "除夕夜全家人圍爐吃火鍋，一邊聊天一邊看電視，氣氛非常溫馨。",
+        "過年送紅包的意思是希望新的一年平安順利。",
+        "過年的時候每個人都會回到老家跟家人團聚幾天。",
+        "他為了慶祝生日，特別買了一個很大的蛋糕。"
+      ]
+    };
+    // ------------------------------------------------------------------
+    // 2. 全域變數和初始化
+    // ------------------------------------------------------------------
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+    let localPracticeRecords = []; // 儲存一般練習紀錄
+    let quizRecords = []; // 儲存測驗紀錄
+    let quizIndices = []; // 測驗選出的句子
+    let currentQuizIndex = 0;
+    const quizLength = 5; // 測驗總題數
+    
+    // 一般練習的句子導航狀態
+    let currentLessonKey = '1'; 
+    let currentSentenceIndex = 0;
+
+
+    // ------------------------------------------------------------------
+    // 3. DOM 元素獲取
+    // ------------------------------------------------------------------
+    const practiceSentenceDiv = document.getElementById('practiceSentence');
+    const resultDiv = document.getElementById('result');
+    const diffDiv = document.getElementById('diff');
+    const feedbackDiv = document.getElementById('feedback');
+    const statusDiv = document.getElementById('status');
+    const recordButton = document.getElementById('recordButton');
+    const stopButton = document.getElementById('stopButton');
+    const savePracticeButton = document.getElementById('savePracticeButton');
+    const saveMessage = document.getElementById('saveMessage');
+    const lessonSelect = document.getElementById('lessonSelect');
+    const sentenceInput = document.getElementById('sentenceInput');
+
+    // 練習區塊的新增按鈕
+    const nextPracticeSentenceButton = document.getElementById('nextPracticeSentenceButton');
+    const randomPracticeSentenceButton = document.getElementById('randomPracticeSentenceButton');
+
+
+    // 測驗元素
+    const startQuizButton = document.getElementById('startQuizButton');
+    const quizRecordButton = document.getElementById('quizRecordButton');
+    const quizStopButton = document.getElementById('quizStopButton');
+    const quizNextButton = document.getElementById('quizNextButton');
+    const quizSummaryButton = document.getElementById('quizSummaryButton');
+    const quizSentenceDiv = document.getElementById('quizSentence');
+    const quizResultDiv = document.getElementById('quizResult');
+    const quizDiffDiv = document.getElementById('quizDiff');
+    const quizFeedbackDiv = document.getElementById('quizFeedbackDiv');
+    const quizSummaryDiv = document.getElementById('quizSummaryDiv');
+    const quizStatusDiv = document.getElementById('quizStatus');
+
+    // 資料匯出
+    const downloadTextButton = document.getElementById('downloadTextButton');
+    const downloadCSVButton = document.getElementById('downloadCSVButton');
+    const dataPreview = document.getElementById('dataPreview');
+
+
+    // ------------------------------------------------------------------
+    // 4. 輔助函式
+    // ------------------------------------------------------------------
+    
+    function updateStatus(message, type = 'ready', targetDiv = statusDiv) {
+      if (targetDiv) {
+          targetDiv.textContent = message;
+          targetDiv.className = `status-box status-${type}`;
+      }
+    }
+
+    function getTargetSentence() {
+      // 根據當前所在的分頁和輸入框內容，確定目標句子
+      const activeTabId = document.querySelector('.tab-content.active').id;
+      if (activeTabId === 'practiceSection') {
+        const customSentence = sentenceInput.value.trim();
+        return customSentence || practiceSentenceDiv.textContent;
+      } else if (activeTabId === 'quizSection') {
+        return quizSentenceDiv.textContent;
+      }
+      return '';
+    }
+
+    // 發音比較函式 (LCS 演算法)
+    function compareText(target, recognized) {
+        if (!target || !recognized) {
+            return { html: '無法比較，目標或辨識結果為空。', grade: 'C' };
+        }
+
+        target = target.replace(/[.,。？！，、；：：「」『』（）]/g, '');
+        recognized = recognized.replace(/[.,。？！，、；：：「」『』（）]/g, '');
+        
+        const m = target.length;
+        const n = recognized.length;
+        const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                if (target[i - 1] === recognized[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+
+        const lcsLength = dp[m][n];
+        const matchRatio = lcsLength / Math.max(m, n);
+        
+        let grade;
+        if (matchRatio >= 0.85) {
+            grade = 'A'; // 優秀
+        } else if (matchRatio >= 0.6) {
+            grade = 'B'; // 良好
+        } else {
+            grade = 'C'; // 需加強
+        }
+
+        // 輸出 HTML 差異結果
+        let i = m, j = n;
+        let diffHtml = '';
+        const targetWords = target.split('');
+        const recognizedWords = recognized.split('');
+
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && targetWords[i - 1] === recognizedWords[j - 1]) {
+                diffHtml = `<span class="diff-match">${targetWords[i - 1]}</span>` + diffHtml;
+                i--;
+                j--;
+            } else if (j > 0 && (i === 0 || dp[i][j] === dp[i][j - 1])) {
+                // 在辨識結果中多出的字 (Extra in Recognized)
+                diffHtml = `<span class="diff-extra">${recognizedWords[j - 1]}</span>` + diffHtml;
+                j--;
+            } else if (i > 0 && (j === 0 || dp[i][j] === dp[i - 1][j])) {
+                // 辨識結果中遺漏的字 (Mismatch/Missing from Target)
+                diffHtml = `<span class="diff-mismatch">${targetWords[i - 1]}</span>` + diffHtml;
+                i--;
+            }
+        }
+        
+        const feedback = generateFeedback(grade, target, recognized, matchRatio);
+
+        return { html: diffHtml, grade: grade, matchRatio: matchRatio, feedback: feedback };
+    }
+    
+    function generateFeedback(grade, target, recognized, ratio) {
+        if (grade === 'A') {
+            return `太棒了！您的發音與目標句子非常接近，準確率達到 ${Math.round(ratio * 100)}%。繼續保持！`;
+        } else if (grade === 'B') {
+            const diffLen = Math.abs(target.length - recognized.length);
+            let suggestion = "請注意紅色標記的文字，它們是目標句中被遺漏或發音不準確的字。";
+            if (diffLen > 0) {
+                suggestion += `您的句子長度與目標句略有不同 (差異 ${diffLen} 字)，請注意語速和完整性。`;
+            } else {
+                suggestion += "請試著放慢速度，確保每個字的發音都清晰到位。";
+            }
+            return `做得不錯！準確率為 ${Math.round(ratio * 100)}%。但還有進步空間。${suggestion}`;
+        } else {
+            return `發音需要加強。準確率為 ${Math.round(ratio * 100)}%。請仔細觀察紅色標記的字，並大聲、清晰地模仿目標句子的發音。建議先放慢速度，逐字練習。`;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 5. 語音錄製函式
+    // ------------------------------------------------------------------
+    async function startRecording(btn) {
+        // 根據按鈕判斷是哪個區塊的錄音
+        const isQuiz = (btn === quizRecordButton);
+        const targetStatusDiv = isQuiz ? quizStatusDiv : statusDiv;
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { 'type': 'audio/webm;codecs=opus' });
+                stream.getTracks().forEach(track => track.stop()); // 停止串流
+                uploadAudio(audioBlob);
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            
+            // 更新 UI 狀態
+            updateStatus('正在錄音...', 'recording', targetStatusDiv);
+            if (isQuiz) {
+              quizRecordButton.disabled = true;
+              quizStopButton.disabled = false;
+              quizNextButton.disabled = true;
+              // 清空上次結果
+              quizResultDiv.textContent = '';
+              quizDiffDiv.innerHTML = '';
+              quizFeedbackDiv.textContent = '';
+            } else {
+              recordButton.disabled = true;
+              stopButton.disabled = false;
+              savePracticeButton.disabled = true;
+              // 清空上次結果
+              resultDiv.textContent = '';
+              diffDiv.innerHTML = '';
+              feedbackDiv.textContent = '';
+            }
+        } catch (err) {
+            console.error('錄音失敗:', err);
+            updateStatus('錄音失敗，請檢查麥克風權限。', 'error', targetStatusDiv);
+            if (isQuiz) {
+                quizRecordButton.disabled = false;
+                quizStopButton.disabled = true;
+            } else {
+                recordButton.disabled = false;
+                stopButton.disabled = true;
+            }
+        }
+    }
+
+    function stopRecording(btn) {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            isRecording = false;
+            
+            const isQuiz = (btn === quizStopButton);
+            const targetStatusDiv = isQuiz ? quizStatusDiv : statusDiv;
+
+            updateStatus('正在處理語音辨識結果...', 'processing', targetStatusDiv);
+
+            if (isQuiz) {
+              quizStopButton.disabled = true;
+              // 錄音完畢，等待結果，按鈕保持禁用
+            } else {
+              stopButton.disabled = true;
+            }
+        }
+    }
+    
+    // ------------------------------------------------------------------
+    // 6. 語音上傳與辨識
+    // ------------------------------------------------------------------
+    function uploadAudio(audioBlob) {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'audio.webm');
+
+        const targetSentence = getTargetSentence();
+        const isQuiz = document.querySelector('.tab-content.active').id === 'quizSection';
+        const targetResultDiv = isQuiz ? quizResultDiv : resultDiv;
+        const targetDiffDiv = isQuiz ? quizDiffDiv : diffDiv;
+        const targetFeedbackDiv = isQuiz ? quizFeedbackDiv : feedbackDiv;
+        const targetStatusDiv = isQuiz ? quizStatusDiv : statusDiv;
+
+        fetch('/recognize', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // 處理結果
+            if (data.error) {
+                console.error('辨識錯誤:', data.error);
+                targetResultDiv.textContent = `辨識失敗: ${data.error}`;
+                targetDiffDiv.innerHTML = '';
+                targetFeedbackDiv.textContent = '';
+                updateStatus(`辨識失敗: ${data.error}`, 'error', targetStatusDiv);
+            } else {
+                const recognizedText = data.text || '無辨識結果';
+                const comparison = compareText(targetSentence, recognizedText);
+
+                targetResultDiv.textContent = recognizedText;
+                targetDiffDiv.innerHTML = comparison.html;
+                targetFeedbackDiv.textContent = comparison.feedback;
+
+                if (isQuiz) {
+                    // 測驗邏輯
+                    quizRecords.push({
+                        sentence: targetSentence,
+                        recognized: recognizedText,
+                        grade: comparison.grade,
+                        ratio: comparison.matchRatio.toFixed(2),
+                        timestamp: new Date().toLocaleString()
+                    });
+                    
+                    updateStatus(`第 ${currentQuizIndex + 1} 題完成。請點擊「下一題」。`, 'ready', targetStatusDiv);
+                    quizRecordButton.disabled = true; // 測驗完成，不能再錄音
+                    quizNextButton.disabled = false; // 啟用下一題
+
+                } else {
+                    // 一般練習邏輯
+                    updateStatus('辨識完成。可點擊「開始錄音」重新練習或「儲存」紀錄。', 'ready', targetStatusDiv);
+                    recordButton.disabled = false;
+                    stopButton.disabled = true;
+                    savePracticeButton.disabled = false;
+                    
+                    // 暫存紀錄到本地變數
+                    const record = {
+                        sentence: targetSentence,
+                        recognized: recognizedText,
+                        grade: comparison.grade,
+                        ratio: comparison.matchRatio.toFixed(2),
+                        timestamp: new Date().toLocaleString()
+                    };
+                    // 為了匯出資料時能區分，一般練習的紀錄暫時放在一個獨立的陣列
+                    // localPracticeRecords.push(record); // 移到 savePracticeButton 點擊時再處理
+                }
+            }
+        })
+        .catch(error => {
+            console.error('上傳或解析錯誤:', error);
+            targetResultDiv.textContent = '連線錯誤，請確認伺服器是否開啟。';
+            targetDiffDiv.innerHTML = '';
+            targetFeedbackDiv.textContent = '';
+            updateStatus('連線錯誤，請確認伺服器是否開啟。', 'error', targetStatusDiv);
+        })
+        .finally(() => {
+            if (!isQuiz) {
+                recordButton.disabled = false;
+                stopButton.disabled = true;
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // 7. 一般練習功能 (已新增下一句/換一句)
+    // ------------------------------------------------------------------
+    function updatePracticeSentence() {
+      const customSentence = sentenceInput.value.trim();
+      const lessonKey = lessonSelect.value;
+      const sentences = lessons[lessonKey];
+      
+      // 1. 處理自訂句子
+      if (customSentence) {
+        practiceSentenceDiv.textContent = customSentence;
+        practiceSentenceDiv.style.backgroundColor = '#ffe0b2'; // 橘色背景
+        nextPracticeSentenceButton.disabled = true;
+        randomPracticeSentenceButton.disabled = true;
+        return;
+      }
+      
+      // 2. 處理沒有課次或句子
+      if (!lessonKey || !sentences || sentences.length === 0) {
+        practiceSentenceDiv.textContent = '請選擇一個課次開始練習。';
+        practiceSentenceDiv.style.backgroundColor = '#f1f1f1';
+        nextPracticeSentenceButton.disabled = true;
+        randomPracticeSentenceButton.disabled = true;
+        return;
+      }
+
+      // 3. 處理課次變更或初始化
+      if (currentLessonKey !== lessonKey) {
+        currentLessonKey = lessonKey;
+        currentSentenceIndex = 0; // 課次變更時，從第一句開始
+      }
+
+      // 4. 處理索引循環
+      if (currentSentenceIndex >= sentences.length) {
+          currentSentenceIndex = 0; // 循環回第一句
+      } else if (currentSentenceIndex < 0) {
+          currentSentenceIndex = sentences.length - 1;
+      }
+
+      // 5. 更新顯示
+      practiceSentenceDiv.textContent = sentences[currentSentenceIndex];
+      practiceSentenceDiv.style.backgroundColor = '#f1f1f1'; // 灰色背景
+
+      // 6. 啟用按鈕
+      nextPracticeSentenceButton.disabled = false;
+      randomPracticeSentenceButton.disabled = false;
+    }
+    
+    function handleNextPracticeSentence() {
+      // 正在使用自訂句子時，不執行切換
+      if (sentenceInput.value.trim()) return;
+
+      const lessonKey = lessonSelect.value;
+      const sentences = lessons[lessonKey];
+
+      if (lessonKey && sentences && sentences.length > 0) {
+          currentSentenceIndex++;
+          updatePracticeSentence();
+      }
+    }
+
+    function handleRandomPracticeSentence() {
+      // 正在使用自訂句子時，不執行切換
+      if (sentenceInput.value.trim()) return;
+
+      const lessonKey = lessonSelect.value;
+      const sentences = lessons[lessonKey];
+
+      if (lessonKey && sentences && sentences.length > 0) {
+          // 選擇一個新的隨機索引，如果句子數大於 1，盡量不選到當前索引
+          let newIndex;
+          do {
+              newIndex = Math.floor(Math.random() * sentences.length);
+          } while (sentences.length > 1 && newIndex === currentSentenceIndex);
+          
+          currentSentenceIndex = newIndex;
+          updatePracticeSentence();
+      }
+    }
+
+
+    // ------------------------------------------------------------------
+    // 8. 測驗功能
+    // ------------------------------------------------------------------
+    function updateQuizSentenceDisplay(sentence) {
+        quizSentenceDiv.textContent = sentence;
+        quizSentenceDiv.style.backgroundColor = '#e3f2fd'; // 淺藍色背景
+    }
+
+    function handleQuizNext() {
+        // 確保當前題目有紀錄才能下一題
+        if (quizRecords.length <= currentQuizIndex) {
+            updateStatus('請先錄音作答！', 'error', quizStatusDiv);
+            return;
+        }
+
+        currentQuizIndex++;
+        
+        // 檢查是否還有題目
+        if (currentQuizIndex < quizLength && currentQuizIndex < quizIndices.length) {
+            // 還有下一題
+            updateQuizSentenceDisplay(quizIndices[currentQuizIndex]);
+            updateStatus(`測驗進行中：第 ${currentQuizIndex + 1} 題 / 共 ${quizLength} 題。請錄音作答。`, 'ready', quizStatusDiv);
+            
+            // 重置 UI
+            quizRecordButton.disabled = false;
+            quizStopButton.disabled = true;
+            quizNextButton.disabled = true;
+            quizResultDiv.textContent = '';
+            quizDiffDiv.innerHTML = '';
+            quizFeedbackDiv.textContent = '';
+        } else {
+            // 測驗結束
+            updateQuizSentenceDisplay('測驗結束！請點擊「匯出測驗總結」。');
+            updateStatus('恭喜完成測驗！請查看總結報告。', 'ready', quizStatusDiv);
+            
+            quizRecordButton.disabled = true;
+            quizStopButton.disabled = true;
+            quizNextButton.disabled = true;
+            startQuizButton.disabled = false; // 啟用重新開始按鈕
+            quizSummaryButton.disabled = false; // 啟用匯出總結按鈕
+            
+            displayQuizSummary(); // 自動顯示總結
+        }
+    }
+
+    function displayQuizSummary() {
+        quizSummaryDiv.innerHTML = '<h4>詳細測驗報告</h4>';
+        
+        let totalRatio = 0;
+
+        quizRecords.forEach((record, index) => {
+            totalRatio += parseFloat(record.ratio);
+            const gradeClass = `grade-${record.grade}`;
+            
+            quizSummaryDiv.innerHTML += `
+                <div class="quiz-summary-item">
+                    <strong>第 ${index + 1} 題 (成績: <span class="${gradeClass}">${record.grade}</span>)</strong>
+                    <p>目標句子: ${record.sentence}</p>
+                    <p>您的發音: ${record.recognized || '無紀錄'}</p>
+                    <p>準確率: ${Math.round(record.ratio * 100)}%</p>
+                </div>
+            `;
+        });
+        
+        const overallRatio = (totalRatio / quizRecords.length) || 0;
+        let overallGrade;
+        if (overallRatio >= 0.85) {
+            overallGrade = 'A';
+        } else if (overallRatio >= 0.6) {
+            overallGrade = 'B';
+        } else {
+            overallGrade = 'C';
+        }
+        const overallGradeClass = `grade-${overallGrade}`;
+
+        quizSummaryDiv.innerHTML += `
+            <h4 style="margin-top: 20px;">總平均成績: <span class="${overallGradeClass}">${overallGrade} (${Math.round(overallRatio * 100)}%)</span></h4>
+        `;
+    }
+
+    // ------------------------------------------------------------------
+    // 9. 資料儲存與匯出
+    // ------------------------------------------------------------------
+    function loadRecords() {
+        const storedRecords = localStorage.getItem('practiceRecords');
+        if (storedRecords) {
+            try {
+                // 由於測驗和練習紀錄分開儲存，這裡只處理一般練習的紀錄
+                localPracticeRecords = JSON.parse(storedRecords);
+            } catch (e) {
+                console.error("無法解析儲存的紀錄:", e);
+                localStorage.removeItem('practiceRecords');
+            }
+        }
+    }
+    
+    function saveRecordToLocalStorage(record) {
+        localPracticeRecords.push(record);
+        try {
+            localStorage.setItem('practiceRecords', JSON.stringify(localPracticeRecords));
+            saveMessage.textContent = '紀錄已成功儲存！';
+            setTimeout(() => saveMessage.textContent = '', 3000);
+        } catch (e) {
+            console.error("儲存紀錄失敗:", e);
+            saveMessage.textContent = '儲存失敗，可能是瀏覽器儲存空間不足。';
+            setTimeout(() => saveMessage.textContent = '', 5000);
+        }
+    }
+
+    function downloadText() {
+        const allRecords = [...localPracticeRecords, ...quizRecords.map(r => ({...r, type: 'Quiz'}))];
+        if (allRecords.length === 0) {
+            alert('沒有任何練習紀錄可以匯出。');
+            return;
+        }
+
+        let text = '中文口語發音練習紀錄報告\n';
+        text += '=====================================\n\n';
+
+        allRecords.forEach((record, index) => {
+            text += `--- 紀錄 #${index + 1} (${record.type || 'Practice'}) ---\n`;
+            text += `時間: ${record.timestamp}\n`;
+            text += `目標句: ${record.sentence}\n`;
+            text += `辨識結果: ${record.recognized}\n`;
+            text += `準確率: ${Math.round(record.ratio * 100)}%\n`;
+            text += `成績等級: ${record.grade}\n`;
+            text += '-------------------------------------\n';
+        });
+
+        dataPreview.value = text;
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'practice_records.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    
+    function downloadCSV() {
+        const allRecords = [...localPracticeRecords, ...quizRecords.map(r => ({...r, type: 'Quiz'}))];
+        if (allRecords.length === 0) {
+            alert('沒有任何練習紀錄可以匯出。');
+            return;
+        }
+
+        let csv = '類型,時間,目標句,辨識結果,準確率,成績等級\n';
+        allRecords.forEach(record => {
+            const type = record.type || 'Practice';
+            const sentence = `"${record.sentence.replace(/"/g, '""')}"`;
+            const recognized = `"${record.recognized.replace(/"/g, '""')}"`;
+            const ratio = Math.round(record.ratio * 100) + '%';
+            csv += `${type},"${record.timestamp}",${sentence},${recognized},${ratio},${record.grade}\n`;
+        });
+
+        dataPreview.value = csv;
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'practice_records.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // ------------------------------------------------------------------
+    // 10. 事件監聽器和初始化
+    // ------------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+      // 載入 localStorage 紀錄
+      loadRecords();
+
+      // 初始化課次選單
+      for (const key in lessons) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = `第 ${key} 課`;
+        lessonSelect.appendChild(option);
+      }
+      
+      // 自動選取第 1 課，並顯示第一句
+      lessonSelect.value = '1'; 
+      updatePracticeSentence(); 
+      
+      // 按鈕事件綁定
+      recordButton.addEventListener('click', () => startRecording(recordButton));
+      stopButton.addEventListener('click', () => stopRecording(stopButton));
+
+      // 一般練習的句子切換
+      lessonSelect.addEventListener('change', updatePracticeSentence);
+      sentenceInput.addEventListener('input', updatePracticeSentence);
+      nextPracticeSentenceButton.addEventListener('click', handleNextPracticeSentence); // 新增「下一句」按鈕
+      randomPracticeSentenceButton.addEventListener('click', handleRandomPracticeSentence); // 新增「換一句」按鈕
+
+      savePracticeButton.addEventListener('click', () => {
+          const targetSentence = getTargetSentence();
+          const recognizedText = resultDiv.textContent;
+          if (targetSentence && recognizedText && recognizedText !== '無辨識結果') {
+              // 重新計算分數以確保準確性
+              const comparison = compareText(targetSentence, recognizedText);
+              const record = {
+                  sentence: targetSentence,
+                  recognized: recognizedText,
+                  grade: comparison.grade,
+                  ratio: comparison.matchRatio.toFixed(2),
+                  timestamp: new Date().toLocaleString(),
+                  type: 'Practice'
+              };
+              saveRecordToLocalStorage(record);
+          } else {
+              saveMessage.textContent = '請先完成一次有效的錄音和辨識。';
+              setTimeout(() => saveMessage.textContent = '', 3000);
+          }
+      });
+      
+      // 測驗按鈕
+      startQuizButton.addEventListener('click', () => {
+        // 重置所有狀態
+        startQuizButton.disabled = true;
+        quizSummaryButton.disabled = true;
+        quizRecords.length = 0;
+        quizIndices.length = 0;
+        currentQuizIndex = 0;
+        
+        quizSummaryDiv.innerHTML = '';
+        quizResultDiv.textContent = '';
+        quizDiffDiv.innerHTML = '';
+        quizFeedbackDiv.textContent = '';
+
+        // 隨機選取 5 個課次，從每個課次中隨機選 1 句
+        const lessonKeys = Object.keys(lessons);
+        
+        // 確保至少有 5 課可以選，否則只取全部課次
+        const lessonsToPickFrom = lessonKeys.length >= quizLength ? quizLength : lessonKeys.length;
+        
+        // 隨機選取 5 個(或全部)不重複的課次
+        const selectedLessonKeys = [];
+        const availableLessonKeys = [...lessonKeys];
+        while(selectedLessonKeys.length < lessonsToPickFrom) {
+            const randomIndex = Math.floor(Math.random() * availableLessonKeys.length);
+            selectedLessonKeys.push(availableLessonKeys[randomIndex]);
+            availableLessonKeys.splice(randomIndex, 1);
+        }
+
+        // 從每個選定的課次中隨機選 1 句作為測驗題目
+        for (const key of selectedLessonKeys) {
+            const selectedSentences = lessons[key];
+            if (selectedSentences.length > 0) {
+                 const randomIndex = Math.floor(Math.random() * selectedSentences.length);
+                 quizIndices.push(selectedSentences[randomIndex]);
+            }
+        }
+
+        // 如果選不到足夠的句子
+        if (quizIndices.length < quizLength) {
+             updateQuizStatus(`句子數量不足 ${quizLength} 句 (只選到 ${quizIndices.length} 句)。請檢查課程資料。`, 'error');
+             startQuizButton.disabled = false;
+             return;
+        }
+
+        // 設置新的測驗總題數 (以實際選到的句子為準)
+        const actualQuizLength = quizIndices.length;
+
+        // 顯示第一句
+        updateQuizSentenceDisplay(quizIndices[0]);
+        quizRecordButton.disabled = false;
+        quizStopButton.disabled = true; // 確保停止按鈕預設禁用
+        quizNextButton.disabled = true; // 需錄音後才能按下一題
+        updateStatus('測驗開始，請錄音。', 'ready');
+        quizStatusDiv.textContent = `測驗開始：第 ${currentQuizIndex + 1} 題 / 共 ${actualQuizLength} 題。請錄音作答。`;
+      });
+
+
+      quizRecordButton.addEventListener('click', () => startRecording(quizRecordButton));
+      quizStopButton.addEventListener('click', () => stopRecording(quizStopButton));
+      quizNextButton.addEventListener('click', handleQuizNext);
+      quizSummaryButton.addEventListener('click', displayQuizSummary);
+      
+      downloadTextButton.addEventListener('click', downloadText);
+      downloadCSVButton.addEventListener('click', downloadCSV);
+      
+    });
+    
+    // Tab 切換功能
+    function openTab(tabId, element) {
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tabs button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.getElementById(tabId).classList.add('active');
+      element.classList.add('active');
+    }
+
+  </script>
+
+</body>
+</html>
+
